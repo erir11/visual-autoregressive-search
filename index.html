@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Autoregressive Models Beat Diffusion Models on Inference Time Scaling</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .section-title {
+            font-weight: 700;
+            font-size: 2.25rem;
+            line-height: 2.5rem;
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #111827;
+        }
+        .highlight {
+            color: #16a34a;
+        }
+        .paper-link {
+            transition: all 0.2s ease-in-out;
+        }
+        .paper-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .result-card {
+            background-color: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.75rem;
+            padding: 2rem;
+            text-align: center;
+        }
+        .slider-container {
+            position: relative;
+            max-width: 1000px;
+            margin: auto;
+            background: white;
+            border-radius: 0.75rem;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .slide {
+            display: none;
+        }
+        .prev, .next {
+            cursor: pointer;
+            position: absolute;
+            top: 50%;
+            width: auto;
+            padding: 16px;
+            margin-top: -30px;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+            transition: 0.3s ease;
+            border-radius: 0 3px 3px 0;
+            user-select: none;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+        .next {
+            right: 0;
+            border-radius: 3px 0 0 3px;
+        }
+        .prev:hover, .next:hover {
+            background-color: rgba(0,0,0,0.8);
+        }
+        .dots-container {
+            text-align: center;
+            padding: 1rem;
+            background-color: #f9fafb;
+        }
+        .dot {
+            cursor: pointer;
+            height: 12px;
+            width: 12px;
+            margin: 0 4px;
+            background-color: #d1d5db;
+            border-radius: 50%;
+            display: inline-block;
+            transition: background-color 0.3s ease;
+        }
+        .active, .dot:hover {
+            background-color: #6b7280;
+        }
+        .caption {
+            text-align: center;
+            font-weight: 600;
+            padding: 1rem;
+            color: #374151;
+            background-color: #f9fafb;
+            border-top: 1px solid #e5e7eb;
+        }
+        .comparison-img {
+            width: 100%;
+            height: auto;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Section -->
+    <header class="bg-white py-12">
+        <div class="container mx-auto max-w-5xl px-6 text-center">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-900 leading-tight">
+                Visual Autoregressive Models Beat Diffusion Models on Inference Time Scaling
+            </h1>
+            <div class="mt-6 text-lg text-gray-700">
+                <span class="font-semibold"><a href="#" class="hover:underline">Erik Riise</a><sup>1</sup>,</span>
+                <span class="font-semibold"><a href="https://monurcan.github.io/" class="hover:underline">Mehmet Onurcan Kaya</a><sup>1,2</sup>,</span>
+                <span class="font-semibold"><a href="https://dimipapa.github.io/" class="hover:underline">Dim P. Papadopoulos</a><sup>1,2</sup></span>
+            </div>
+            <div class="mt-2 text-md text-gray-500">
+                <span><sup>1</sup>Technical University of Denmark,</span>
+                <span><sup>2</sup>Pioneer Center for AI</span>
+            </div>
+            <p class="mt-2 font-semibold text-gray-800"></p>
+
+            <div class="mt-8 flex justify-center gap-4 flex-wrap">
+                <a href="https://arxiv.org/pdf/2510.16751" class="paper-link bg-gray-800 text-white font-semibold py-2 px-5 rounded-full flex items-center gap-2">
+                    <i class="fas fa-file-pdf"></i> Paper
+                </a>
+                <a href="https://arxiv.org/abs/2510.16751" class="paper-link bg-gray-800 text-white font-semibold py-2 px-5 rounded-full flex items-center gap-2">
+                    <i class="fa-solid fa-book-bookmark"></i> arXiv
+                </a>
+                <span class="bg-gray-400 text-gray-200 font-semibold py-2 px-5 rounded-full flex items-center gap-2 cursor-not-allowed opacity-60">
+                    <i class="fab fa-github"></i> Code (Coming Soon)
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Teaser: Figure 1 (Single Image) -->
+    <section class="py-12">
+        <div class="container mx-auto max-w-6xl px-6">
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                <!-- Single Figure 1 image -->
+                <img src="assets/figures/figure1.jpg" alt="Figure 1: Performance comparison and qualitative examples" class="w-full h-auto rounded-lg">
+                
+                <p class="mt-6 text-center text-gray-600">
+                    <b>Figure 1:</b> Guided search in autoregressive models provides a more efficient path to high-quality image generation than scaling diffusion models. <span class="highlight font-semibold">(Left)</span> A 2B autoregressive model with beam search (green) surpasses a 12B FLUX.1-dev model using random search (orange), while requiring less computation. <span class="highlight font-semibold">(Right)</span> Examples showing how beam search corrects compositional errors in baseline generations.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Abstract -->
+    <section class="py-12">
+        <div class="container mx-auto max-w-3xl px-6">
+            <h2 class="section-title">Abstract</h2>
+            <div class="bg-white p-8 rounded-xl border border-gray-200 text-gray-700 space-y-4 text-justify shadow-sm">
+                <p>While inference-time scaling through search has revolutionized Large Language Models, translating these gains to image generation has proven difficult. Recent attempts to apply search strategies to continuous diffusion models show limited benefits, with simple random sampling often performing best.</p>
+                <p>We demonstrate that the discrete, sequential nature of visual autoregressive models enables effective search for image generation. We show that beam search substantially improves text-to-image generation, enabling a 2B parameter autoregressive model to outperform a 12B parameter diffusion model across benchmarks. These findings suggest that model architecture, not just scale, is critical for inference-time optimization in visual generation.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Key Results Section -->
+    <section class="py-12">
+        <div class="container mx-auto max-w-5xl px-6">
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="result-card shadow-sm">
+                    <div class="text-5xl font-bold highlight">2x</div>
+                    <p class="mt-2 text-gray-600">Larger performance gains than diffusion model search strategies.</p>
+                </div>
+                <div class="result-card shadow-sm">
+                    <div class="text-5xl font-bold highlight">46%</div>
+                    <p class="mt-2 text-gray-600">Fewer function evaluations needed to achieve superior results.</p>
+                </div>
+                <div class="result-card shadow-sm">
+                    <div class="text-5xl font-bold highlight">6x</div>
+                    <p class="mt-2 text-gray-600">Smaller model (2B) with search beats a 12B parameter model.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Method Section -->
+    <section class="py-12 bg-white border-t border-b border-gray-200">
+        <div class="container mx-auto max-w-6xl px-6">
+            <h2 class="section-title">Method Overview</h2>
+            
+            <!-- Search strategies in one row -->
+            <div class="grid md:grid-cols-3 gap-6 mb-10">
+                <div class="p-6 border border-gray-200 rounded-lg bg-white">
+                    <h4 class="font-bold text-lg text-gray-800">Random Search</h4>
+                    <p class="mt-2 text-gray-600">Generates N independent images and selects the best one. Maximizes diversity but is computationally inefficient.</p>
+                </div>
+                <div class="p-6 border border-gray-200 rounded-lg bg-white">
+                    <h4 class="font-bold text-lg text-gray-800">Greedy Token Optimization</h4>
+                    <p class="mt-2 text-gray-600">At each generation scale, greedily commits to the single best token. Efficient but can get stuck in local optima.</p>
+                </div>
+                <div class="p-6 border border-gray-200 rounded-lg bg-white">
+                    <h4 class="font-bold text-lg text-gray-800">Beam Search</h4>
+                    <p class="mt-2 text-gray-600">Maintains multiple parallel generation paths (beams), balancing exploration with computational efficiency. <strong>This is our best-performing method.</strong></p>
+                </div>
+            </div>
+
+            <!-- Figure 2: Full width -->
+            <div class="bg-white p-4 rounded-xl border border-gray-200">
+                <img src="assets/figures/figure2.jpg" alt="Figure 2: Search Strategies for Autoregressive Image Generation" class="w-full h-auto rounded-lg">
+                <p class="mt-4 text-center text-gray-600 text-sm">
+                    <b>Figure 2:</b> Search strategies for autoregressive image generation. (a) Random search generates images independently. (b) Greedy token optimization commits to best token at each step. (c) Beam search maintains multiple parallel sequences.
+                </p>
+            </div>
+        </div>
+    </section>
+
+<!-- Quantitative Results: All Benchmarks -->
+<section class="py-16">
+    <div class="container mx-auto max-w-6xl px-6">
+        <h2 class="section-title">Quantitative Results</h2>
+        
+        <!-- T2I-CompBench++ Results -->
+        <div class="mb-12">
+            <h3 class="text-2xl font-bold text-center text-gray-800 mb-4">T2I-CompBench++ Benchmark</h3>
+            <p class="text-center text-gray-600 max-w-3xl mx-auto mb-8">
+                On the T2I-CompBench++ benchmark, our 2B autoregressive model with beam search consistently outperforms the 12B FLUX.1-dev diffusion model, demonstrating the power of architecture over raw parameter count for compositional tasks.
+            </p>
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <table class="w-full text-center">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="p-4 font-semibold text-gray-700">Method</th>
+                            <th class="p-4 font-semibold text-gray-700">Model</th>
+                            <th class="p-4 font-semibold text-gray-700">Color</th>
+                            <th class="p-4 font-semibold text-gray-700">Shape</th>
+                            <th class="p-4 font-semibold text-gray-700">Texture</th>
+                            <th class="p-4 font-semibold text-gray-700">Spatial</th>
+                            <th class="p-4 font-semibold text-gray-700">Numeracy</th>
+                            <th class="p-4 font-semibold text-gray-700">Complex</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-gray-600">
+                        <tr class="border-b border-gray-200">
+                            <td class="p-3">Ma et al. + Search</td>
+                            <td class="p-3">FLUX.1-dev (12B)</td>
+                            <td class="p-3">0.82</td>
+                            <td class="p-3">0.60</td>
+                            <td class="p-3">0.72</td>
+                            <td class="p-3">0.30</td>
+                            <td class="p-3">0.66</td>
+                            <td class="p-3">0.38</td>
+                        </tr>
+                        <tr class="bg-green-50">
+                            <td class="p-4 font-semibold text-gray-800">Ours + Beam search</td>
+                            <td class="p-4 font-semibold text-gray-800">Infinity-2B (2B)</td>
+                            <td class="p-4 font-bold highlight">0.83</td>
+                            <td class="p-4 font-bold highlight">0.64</td>
+                            <td class="p-4 font-bold highlight">0.76</td>
+                            <td class="p-4 font-bold highlight">0.36</td>
+                            <td class="p-4 font-bold highlight">0.67</td>
+                            <td class="p-4 font-bold highlight">0.42</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- GenEval Results -->
+        <div>
+            <h3 class="text-2xl font-bold text-center text-gray-800 mb-4">GenEval Benchmark</h3>
+            <p class="text-center text-gray-600 max-w-3xl mx-auto mb-8">
+                Beam search demonstrates substantial improvements across all GenEval categories, particularly in multi-object composition (+19%), counting tasks (+25%), and spatial positioning (+26%).
+            </p>
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <table class="w-full text-center">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="p-4 font-semibold text-gray-700">Method</th>
+                            <th class="p-4 font-semibold text-gray-700">One Obj.</th>
+                            <th class="p-4 font-semibold text-gray-700">Two Obj.</th>
+                            <th class="p-4 font-semibold text-gray-700">Count</th>
+                            <th class="p-4 font-semibold text-gray-700">Colors</th>
+                            <th class="p-4 font-semibold text-gray-700">Position</th>
+                            <th class="p-4 font-semibold text-gray-700">Color Attr.</th>
+                            <th class="p-4 font-semibold text-gray-700">Overall</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-gray-600">
+                        <tr class="border-b border-gray-200">
+                            <td class="p-3">Baseline</td>
+                            <td class="p-3">1.00</td>
+                            <td class="p-3">0.78</td>
+                            <td class="p-3">0.60</td>
+                            <td class="p-3">0.85</td>
+                            <td class="p-3">0.25</td>
+                            <td class="p-3">0.55</td>
+                            <td class="p-3">0.67</td>
+                        </tr>
+                        <tr class="bg-green-50">
+                            <td class="p-4 font-semibold text-gray-800">Beam Search</td>
+                            <td class="p-4 font-bold highlight">1.00</td>
+                            <td class="p-4 font-bold highlight">0.97</td>
+                            <td class="p-4 font-bold highlight">0.85</td>
+                            <td class="p-4 font-bold highlight">0.90</td>
+                            <td class="p-4 font-bold highlight">0.51</td>
+                            <td class="p-4 font-bold highlight">0.74</td>
+                            <td class="p-4 font-bold highlight">0.83</td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 font-semibold">Improvement</td>
+                            <td class="p-3">0.00</td>
+                            <td class="p-3 font-semibold text-green-600">+0.19</td>
+                            <td class="p-3 font-semibold text-green-600">+0.25</td>
+                            <td class="p-3 font-semibold text-green-600">+0.05</td>
+                            <td class="p-3 font-semibold text-green-600">+0.26</td>
+                            <td class="p-3 font-semibold text-green-600">+0.19</td>
+                            <td class="p-3 font-semibold text-green-600">+0.16</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+    
+    <!-- Qualitative Results: Figure 4 (Recreated) -->
+    <section class="py-12 bg-white border-t border-gray-200">
+        <div class="container mx-auto max-w-7xl px-6">
+            <h2 class="section-title">Qualitative Comparison: Verifier Analysis</h2>
+            
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <!-- Header Row -->
+                <div class="grid grid-cols-5 gap-4 p-4 bg-gray-50 border-b border-gray-200 font-semibold text-center text-gray-700">
+                    <div>Category</div>
+                    <div>Prompt</div>
+                    <div>Baseline</div>
+                    <div>Beam + ImageReward</div>
+                    <div>Beam + LLaVA</div>
+                </div>
+
+                <!-- Color Row -->
+                <div class="grid grid-cols-5 gap-4 p-4 border-b border-gray-200 items-center">
+                    <div class="font-semibold text-gray-800">Color</div>
+                    <div class="text-sm text-gray-600">"A yellow frog and a green fly"</div>
+                    <div><img src="assets/figure4/color_baseline.png" alt="Color baseline" class="w-full h-auto rounded border border-gray-200"></div>
+                    <div><img src="assets/figure4/color_ir.png" alt="Color beam+IR" class="w-full h-auto rounded border border-gray-200"></div>
+                    <div><img src="assets/figure4/color_llava.png" alt="Color beam+LLaVA" class="w-full h-auto rounded border border-gray-200"></div>
+                </div>
+
+                <!-- Shape Row -->
+                <div class="grid grid-cols-5 gap-4 p-4 border-b border-gray-200 items-center">
+                    <div class="font-semibold text-gray-800">Shape</div>
+                    <div class="text-sm text-gray-600">"A round cookie and a square tin"</div>
+                    <div><img src="assets/figure4/shape_baseline.png" alt="Shape baseline" class="w-full h-auto rounded border border-gray-200"></div>
+                    <div><img src="assets/figure4/shape_ir.png" alt="Shape beam+IR" class="w-full h-auto rounded border border-gray-200"></div>
+                    <div><img src="assets/figure4/shape_llava.png" alt="Shape beam+LLaVA" class="w-full h-auto rounded border border-gray-200"></div>
+                </div>
+
+                <!-- Texture Row -->
+                <div class="grid grid-cols-5 gap-4 p-4 border-b border-gray-200 items-center">
+                    <div class="font-semibold text-gray-800">Texture</div>
+                    <div class="text-sm text-gray-600">"A metallic car and leather shoes"</div>
+                    <div><img src="assets/figure4/texture_baseline.png" alt="Texture baseline" class="w-full h-auto rounded border border-gray-200"></div>
+                    <div><img src="assets/figure4/texture_ir.png" alt="Texture beam+IR" class="w-full h-auto rounded border border-gray-200"></div>
+                    <div><img src="assets/figure4/texture_llava.png" alt="Texture beam+LLaVA" class="w-full h-auto rounded border border-gray-200"></div>
+                </div>
+
+                <!-- Spatial Row -->
+                <div class="grid grid-cols-5 gap-4 p-4 border-b border-gray-200 items-center">
+                    <div class="font-semibold text-gray-800">Spatial</div>
+                    <div class="text-sm text-gray-600">"A man on the right of a lamp"</div>
+                    <div><img src="assets/figure4/spatial_baseline.png" alt="Spatial baseline" class="w-full h-auto rounded border border-gray-200"></div>
+                    <div><img src="assets/figure4/spatial_ir.png" alt="Spatial beam+IR" class="w-full h-auto rounded border border-gray-200"></div>
+                    <div><img src="assets/figure4/spatial_llava.png" alt="Spatial beam+LLaVA" class="w-full h-auto rounded border border-gray-200"></div>
+                </div>
+
+                <!-- Numeracy Row -->
+                <div class="grid grid-cols-5 gap-4 p-4 border-b border-gray-200 items-center">
+                    <div class="font-semibold text-gray-800">Numeracy</div>
+                    <div class="text-sm text-gray-600">"Five candles"</div>
+                    <div><img src="assets/figure4/numeracy_baseline.png" alt="Numeracy baseline" class="w-full h-auto rounded border border-gray-200"></div>
+                    <div><img src="assets/figure4/numeracy_ir.png" alt="Numeracy beam+IR" class="w-full h-auto rounded border border-gray-200"></div>
+                    <div><img src="assets/figure4/numeracy_llava.png" alt="Numeracy beam+LLaVA" class="w-full h-auto rounded border border-gray-200"></div>
+                </div>
+
+                <!-- Complex Row -->
+                <div class="grid grid-cols-5 gap-4 p-4 items-center">
+                    <div class="font-semibold text-gray-800">Complex</div>
+                    <div class="text-sm text-gray-600">"Red hat on a brown coatrack"</div>
+                    <div><img src="assets/figure4/complex_baseline.png" alt="Complex baseline" class="w-full h-auto rounded border border-gray-200"></div>
+                    <div><img src="assets/figure4/complex_ir.png" alt="Complex beam+IR" class="w-full h-auto rounded border border-gray-200"></div>
+                    <div><img src="assets/figure4/complex_llava.png" alt="Complex beam+LLaVA" class="w-full h-auto rounded border border-gray-200"></div>
+                </div>
+            </div>
+            
+            <p class="mt-6 text-center text-gray-600 max-w-3xl mx-auto">
+                <b>Figure 4:</b> Qualitative comparison of verifiers on T2I-CompBench++. For attribute binding (e.g., Color), both verifiers perform well. For complex reasoning (e.g., Spatial), LLaVA-OneVision's capabilities are required to guide the model to a semantically correct image, correcting errors that ImageReward misses.
+            </p>
+        </div>
+    </section>
+    
+    <!-- Additional Qualitative Results Slider -->
+    <section class="py-16">
+        <div class="container mx-auto max-w-5xl px-6">
+            <h2 class="section-title">Additional Qualitative Results</h2>
+            <p class="text-center text-gray-600 max-w-3xl mx-auto mb-8">
+            </p>
+
+            <div id="slider" class="slider-container">
+                <!-- Slide 1: Bee left of key -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/bee_left_of_key/baseline.png" alt="Bee left of key - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/bee_left_of_key/final.png" alt="Bee left of key - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Bee left of key"</div>
+                </div>
+
+                <!-- Slide 2: Giraffe right of wallet -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/giraffe_right_of_wallet/baseline.png" alt="Giraffe right of wallet - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/giraffe_right_of_wallet/final.png" alt="Giraffe right of wallet - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Giraffe right of wallet"</div>
+                </div>
+
+                <!-- Slide 3: Green rose, blue tulip -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/green_rose_blue_tulip/baseline.png" alt="Green rose, blue tulip - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/green_rose_blue_tulip/final.png" alt="Green rose, blue tulip - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Green rose, blue tulip"</div>
+                </div>
+
+                <!-- Slide 4: Six keys -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/six_keys/baseline.png" alt="Six keys - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/six_keys/final.png" alt="Six keys - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Six keys"</div>
+                </div>
+
+                <!-- Slide 5: Bird next to refrigerator -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/bird_next_to_refrigerator/baseline.png" alt="Bird next to refrigerator - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/bird_next_to_refrigerator/final.png" alt="Bird next to refrigerator - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Bird next to refrigerator"</div>
+                </div>
+
+                <!-- Slide 6: Six ducks -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/six_ducks/baseline.png" alt="Six ducks - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/six_ducks/final.png" alt="Six ducks - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Six ducks"</div>
+                </div>
+
+                <!-- Slide 7: Small button big zipper -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/small_button_big_zipper/baseline.png" alt="Small button big zipper - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/small_button_big_zipper/final.png" alt="Small button big zipper - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Small button, big zipper"</div>
+                </div>
+
+                <!-- Slide 8: Bird top of balloon -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/bird_top_of_balloon/baseline.png" alt="Bird top of balloon - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/bird_top_of_balloon/final.png" alt="Bird top of balloon - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Bird on top of balloon"</div>
+                </div>
+
+                <!-- Slide 9: Small lion big horse -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/small_lion_big_horse/baseline.png" alt="Small lion big horse - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/small_lion_big_horse/final.png" alt="Small lion big horse - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Small lion, big horse"</div>
+                </div>
+
+                <!-- Slide 10: Fish near car -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/fish_near_car/baseline.png" alt="Fish near car - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/fish_near_car/final.png" alt="Fish near car - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Fish near car"</div>
+                </div>
+
+                <!-- Slide 11: Suitcase right of cow -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/suitcase_right_of_cow/baseline.png" alt="Suitcase right of cow - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/suitcase_right_of_cow/final.png" alt="Suitcase right of cow - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Suitcase right of cow"</div>
+                </div>
+
+                <!-- Slide 12: Five kites -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/five_kites/baseline.png" alt="Five kites - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/five_kites/final.png" alt="Five kites - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Five kites"</div>
+                </div>
+
+                <!-- Slide 13: Tall sunflower short daisy -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/tall_sunflower_short_daisy/baseline.png" alt="Tall sunflower short daisy - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/tall_sunflower_short_daisy/final.png" alt="Tall sunflower short daisy - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Tall sunflower, short daisy"</div>
+                </div>
+
+                <!-- Slide 14: Four lamps four dogs -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/four_lamps_four_dogs/baseline.png" alt="Four lamps four dogs - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/four_lamps_four_dogs/final.png" alt="Four lamps four dogs - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Four lamps, four dogs"</div>
+                </div>
+
+                <!-- Slide 15: Three clocks -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/three_clocks/baseline.png" alt="Three clocks - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/three_clocks/final.png" alt="Three clocks - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Three clocks"</div>
+                </div>
+
+                <!-- Slide 16: Four pens -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/four_pens/baseline.png" alt="Four pens - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/four_pens/final.png" alt="Four pens - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Four pens"</div>
+                </div>
+
+                <!-- Slide 17: Two bowls three microwaves two chickens -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/two_bowls_three_microwaves_two_chickens/baseline.png" alt="Two bowls three microwaves two chickens - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/two_bowls_three_microwaves_two_chickens/final.png" alt="Two bowls three microwaves two chickens - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Two bowls, three microwaves, two chickens"</div>
+                </div>
+
+                <!-- Slide 18: Two sofas four chickens -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/two_sofas_four_chickens/baseline.png" alt="Two sofas four chickens - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/two_sofas_four_chickens/final.png" alt="Two sofas four chickens - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Two sofas, four chickens"</div>
+                </div>
+
+                <!-- Slide 19: Two trains -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/two_trains/baseline.png" alt="Two trains - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/two_trains/final.png" alt="Two trains - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Two trains"</div>
+                </div>
+
+                <!-- Slide 20: Green apple red kiwi -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/green_apple_red_kiwi/baseline.png" alt="Green apple red kiwi - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/green_apple_red_kiwi/final.png" alt="Green apple red kiwi - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Green apple, red kiwi"</div>
+                </div>
+
+                <!-- Slide 21: Vase right of man -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/vase_right_of_man/baseline.png" alt="Vase right of man - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/vase_right_of_man/final.png" alt="Vase right of man - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Vase right of man"</div>
+                </div>
+
+                <!-- Slide 22: Green frog yellow fly -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/green_frog_yellow_fly/baseline.png" alt="Green frog yellow fly - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/green_frog_yellow_fly/final.png" alt="Green frog yellow fly - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Green frog, yellow fly"</div>
+                </div>
+
+                <!-- Slide 23: Woman right of TV -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/woman_right_of_TV/baseline.png" alt="Woman right of TV - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/woman_right_of_TV/final.png" alt="Woman right of TV - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Woman right of TV"</div>
+                </div>
+
+                <!-- Slide 24: Rubber tire fabric pillow -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/rubber_tire_fabric_pillow/baseline.png" alt="Rubber tire fabric pillow - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/rubber_tire_fabric_pillow/final.png" alt="Rubber tire fabric pillow - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Rubber tire, fabric pillow"</div>
+                </div>
+
+                <!-- Slide 25: Wooden desk leather jacket -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/wooden_desk_leather_jacket/baseline.png" alt="Wooden desk leather jacket - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/wooden_desk_leather_jacket/final.png" alt="Wooden desk leather jacket - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Wooden desk, leather jacket"</div>
+                </div>
+
+                <!-- Slide 26: Seven balloons -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/seven_balloons/baseline.png" alt="Seven balloons - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/seven_balloons/final.png" alt="Seven balloons - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Seven balloons"</div>
+                </div>
+
+                <!-- Slide 27: Wooden toy fabric pants -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/wooden_toy_fabric_pants/baseline.png" alt="Wooden toy fabric pants - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/wooden_toy_fabric_pants/final.png" alt="Wooden toy fabric pants - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Wooden toy, fabric pants"</div>
+                </div>
+
+                <!-- Slide 28: Six bread -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/six_bread/baseline.png" alt="Six bread - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/six_bread/final.png" alt="Six bread - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Six bread"</div>
+                </div>
+
+                <!-- Slide 29: Wooden fork glass bowl -->
+                <div class="slide">
+                    <div class="p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Baseline</h3>
+                                <img src="assets/qualitative/wooden_fork_glass_bowl/baseline.png" alt="Wooden fork glass bowl - Baseline" class="comparison-img">
+                            </div>
+                            <div>
+                                <h3 class="text-center font-semibold mb-2 text-gray-700">Search-Guided</h3>
+                                <img src="assets/qualitative/wooden_fork_glass_bowl/final.png" alt="Wooden fork glass bowl - Search-Guided" class="comparison-img">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="caption">"Wooden fork, glass bowl"</div>
+                </div>
+
+                <a class="prev">&#10094;</a>
+                <a class="next">&#10095;</a>
+            </div>
+            <div id="dots-container" class="dots-container"></div>
+        </div>
+    </section>
+
+    <!-- BibTeX -->
+    <section class="py-16">
+        <div class="container mx-auto max-w-3xl px-6">
+            <h2 class="section-title">BibTeX</h2>
+            <div class="bg-gray-800 text-gray-300 rounded-lg p-6 font-mono text-sm overflow-x-auto">
+                <pre><code>@article{Riise2025VisualAR,
+  title  = {Visual Autoregressive Models Beat Diffusion Models on Inference Time Scaling},
+  author = {Erik Riise and Mehmet Onurcan Kaya and Dim P. Papadopoulos},
+  year   = {2025},
+  journal={arXiv preprint arXiv:2510.16751},
+  year={2025},
+  url={}
+}</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <footer class="text-center py-8 text-gray-500">
+        <p>Website template inspired by <a href="https://github.com/nerfies/nerfies.github.io" class="underline hover:text-gray-800">Nerfies</a>.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const slider = document.getElementById('slider');
+            if (!slider) return;
+            
+            const slides = slider.getElementsByClassName('slide');
+            const dotsContainer = document.getElementById('dots-container');
+            let currentSlide = 0;
+
+            for (let i = 0; i < slides.length; i++) {
+                const dot = document.createElement('span');
+                dot.classList.add('dot');
+                dot.setAttribute('data-slide', i);
+                dotsContainer.appendChild(dot);
+            }
+
+            const dots = dotsContainer.getElementsByClassName('dot');
+
+            function showSlide(index) {
+                if (index >= slides.length) {
+                    currentSlide = 0;
+                } else if (index < 0) {
+                    currentSlide = slides.length - 1;
+                } else {
+                    currentSlide = index;
+                }
+
+                for (let i = 0; i < slides.length; i++) {
+                    slides[i].style.display = 'none';
+                }
+
+                for (let i = 0; i < dots.length; i++) {
+                    dots[i].classList.remove('active');
+                }
+
+                if (slides[currentSlide]) {
+                    slides[currentSlide].style.display = 'block';
+                }
+                if (dots[currentSlide]) {
+                    dots[currentSlide].classList.add('active');
+                }
+            }
+
+            const nextButton = slider.querySelector('.next');
+            const prevButton = slider.querySelector('.prev');
+
+            if(nextButton) {
+                nextButton.addEventListener('click', () => {
+                    showSlide(currentSlide + 1);
+                });
+            }
+            
+            if(prevButton) {
+                prevButton.addEventListener('click', () => {
+                    showSlide(currentSlide - 1);
+                });
+            }
+
+            for (let i = 0; i < dots.length; i++) {
+                dots[i].addEventListener('click', (e) => {
+                    showSlide(parseInt(e.target.getAttribute('data-slide')));
+                });
+            }
+
+            if(slides.length > 0){
+                showSlide(currentSlide);
+            }
+        });
+    </script>
+
+</body>
+</html>
