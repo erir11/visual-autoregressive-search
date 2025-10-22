@@ -1,14 +1,75 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Basic Meta Tags -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visual Autoregressive Models Beat Diffusion Models on Inference Time Scaling</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Primary Meta Tags -->
+    <meta name="title" content="Visual Autoregressive Models Beat Diffusion Models on Inference Time Scaling">
+    <meta name="description" content="A 2B parameter autoregressive model with beam search outperforms a 12B diffusion model on compositional image generation, using 46% fewer function evaluations. Research from DTU and Pioneer Center for AI.">
+    <meta name="keywords" content="autoregressive models, diffusion models, inference-time scaling, beam search, text-to-image generation, visual generation, compositional generation, image synthesis, machine learning, computer vision">
+    <meta name="author" content="Erik Riise, Mehmet Onurcan Kaya, Dim P. Papadopoulos">
+    <meta name="robots" content="index, follow">
+    <meta name="language" content="English">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="Technical University of Denmark">
+    <meta property="og:title" content="Visual Autoregressive Models Beat Diffusion Models on Inference Time Scaling">
+    <meta property="og:description" content="A 2B parameter autoregressive model with beam search outperforms a 12B diffusion model on compositional image generation, using 46% fewer function evaluations.">
+    <meta property="og:url" content="https://erir11.github.io/visual-autoregressive-search/">
+    <meta property="og:image" content="https://erir11.github.io/visual-autoregressive-search/assets/figures/figure1.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Visual Autoregressive Models Beat Diffusion Models - Performance comparison showing beam search efficiency">
+    <meta property="article:published_time" content="2025-10-19T08:28:06.000Z">
+    <meta property="article:author" content="Erik Riise">
+    <meta property="article:section" content="Research">
+    <meta property="article:tag" content="autoregressive models">
+    <meta property="article:tag" content="inference-time scaling">
+    <meta property="article:tag" content="beam search">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Visual Autoregressive Models Beat Diffusion Models on Inference Time Scaling">
+    <meta name="twitter:description" content="A 2B parameter autoregressive model with beam search outperforms a 12B diffusion model on compositional image generation, using 46% fewer function evaluations.">
+    <meta name="twitter:image" content="https://erir11.github.io/visual-autoregressive-search/assets/figures/figure1.jpg">
+    <meta name="twitter:image:alt" content="Visual Autoregressive Models Beat Diffusion Models - Performance comparison">
+    
+    <!-- Academic/Research Specific (for Google Scholar) -->
+    <meta name="citation_title" content="Visual Autoregressive Models Beat Diffusion Models on Inference Time Scaling">
+    <meta name="citation_author" content="Riise, Erik">
+    <meta name="citation_author" content="Kaya, Mehmet Onurcan">
+    <meta name="citation_author" content="Papadopoulos, Dim P.">
+    <meta name="citation_publication_date" content="2025">
+    <meta name="citation_conference_title" content="arXiv preprint">
+    <meta name="citation_pdf_url" content="https://arxiv.org/pdf/2510.16751.pdf">
+    <meta name="citation_arxiv_id" content="2510.16751">
+    
+    <!-- Additional SEO -->
+    <meta name="theme-color" content="#16a34a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    
+    <!-- Title -->
+    <title>Visual Autoregressive Models Beat Diffusion Models on Inference Time Scaling | DTU & Pioneer Center for AI</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <link rel="apple-touch-icon" href="assets/favicon.ico">
+    
+    <!-- Preconnect for Performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    
+    <!-- Stylesheets -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom Styles -->
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -108,6 +169,65 @@
             border: 1px solid #e5e7eb;
         }
     </style>
+    
+    <!-- Structured Data for Academic Papers (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ScholarlyArticle",
+      "headline": "Visual Autoregressive Models Beat Diffusion Models on Inference Time Scaling",
+      "description": "We demonstrate that the discrete, sequential nature of visual autoregressive models enables effective search for image generation. We show that beam search substantially improves text-to-image generation, enabling a 2B parameter autoregressive model to outperform a 12B parameter diffusion model across benchmarks.",
+      "author": [
+        {
+          "@type": "Person",
+          "name": "Erik Riise",
+          "affiliation": {
+            "@type": "Organization",
+            "name": "Technical University of Denmark"
+          }
+        },
+        {
+          "@type": "Person",
+          "name": "Mehmet Onurcan Kaya",
+          "affiliation": [
+            {
+              "@type": "Organization",
+              "name": "Technical University of Denmark"
+            },
+            {
+              "@type": "Organization",
+              "name": "Pioneer Center for AI"
+            }
+          ]
+        },
+        {
+          "@type": "Person",
+          "name": "Dim P. Papadopoulos",
+          "affiliation": [
+            {
+              "@type": "Organization",
+              "name": "Technical University of Denmark"
+            },
+            {
+              "@type": "Organization",
+              "name": "Pioneer Center for AI"
+            }
+          ]
+        }
+      ],
+      "datePublished": "2025",
+      "publisher": {
+        "@type": "Organization",
+        "name": "arXiv"
+      },
+      "url": "https://erir11.github.io/visual-autoregressive-search/",
+      "image": "https://erir11.github.io/visual-autoregressive-search/assets/figures/figure1.jpg",
+      "keywords": ["autoregressive models", "diffusion models", "inference-time scaling", "beam search", "text-to-image generation", "visual generation", "compositional generation"],
+      "abstract": "While inference-time scaling through search has revolutionized Large Language Models, translating these gains to image generation has proven difficult. Recent attempts to apply search strategies to continuous diffusion models show limited benefits, with simple random sampling often performing best. We demonstrate that the discrete, sequential nature of visual autoregressive models enables effective search for image generation. We show that beam search substantially improves text-to-image generation, enabling a 2B parameter autoregressive model to outperform a 12B parameter diffusion model across benchmarks. These findings suggest that model architecture, not just scale, is critical for inference-time optimization in visual generation.",
+      "isAccessibleForFree": true,
+      "license": "https://creativecommons.org/licenses/by/4.0/"
+    }
+    </script>
 </head>
 <body>
 
