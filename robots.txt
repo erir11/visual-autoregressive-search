@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://erir11.github.io/visual-autoregressive-search/sitemap.xml
